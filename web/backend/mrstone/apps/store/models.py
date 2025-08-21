@@ -4,6 +4,8 @@ from django_resized import ResizedImageField
 
 from apps.store import utils
 
+import uuid
+
 
 class Category(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -61,3 +63,18 @@ class ProductImage(models.Model):
 
     class Meta:
         db_table = 'product_images'
+
+
+class Order(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    products = models.ManyToManyField(Product)
+    contact = models.CharField(max_length=100)
+    contact_type = models.CharField(max_length=30)
+    status = models.CharField(max_length=30, default='created')
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'orders'
+
+

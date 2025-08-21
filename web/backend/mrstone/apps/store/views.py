@@ -12,11 +12,12 @@ from django.db import transaction
 from utils import makeResponseData
 
 from apps.auth.access import checkAuthToken
-from apps.store.models import Category, Product, ProductImage
-from apps.store.serializers import CategorySerializer, ProductSerializer
+from apps.store.models import Category, Product, ProductImage, Order
+from apps.store.serializers import CategorySerializer, ProductSerializer, OrderSerializer
 from apps.store.schemas import ProductListOffsetScheme
 
 import json
+import uuid
 from pydantic import ValidationError
 
 
@@ -166,5 +167,63 @@ class ProductDetail(APIView):
     def delete(self, request: Request, product_slug: str) -> Response:
         product = self.getObject(product_slug)
         product.delete()
+        response_data = makeResponseData(status=204, message='No Content')
+        return Response(response_data, status=status.HTTP_204_NO_CONTENT)
+
+
+class OrderList(APIView):
+    def get(self, request: Request) -> Response:
+        orders = Order.objects.all()
+        serialized_orders = OrderSerializer(orders, many=True).data
+        response_data = makeResponseData(
+            status=200,
+            message='OK',
+            details={'orders': serialized_orders}
+        )
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def post(self, request: Request) -> Response:
+        serializer = OrderSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            response_data = makeResponseData(
+                status=201,
+                message='Created',
+                details={'order': serializer.data}
+            )
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class OrderDetail(APIView):
+    def getObject(self, order_id: str) -> Order:
+        try:
+            order_id = uuid.UUID(order_id).hex
+            return Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            raise Http404
+
+    def get(self, request: Request, order_id: str) -> Response:
+        order = self.getObject(order_id)
+        serialized_order = OrderSerializer(order).data
+        response = {'order': serialized_order}
+        return Response(response, status=status.HTTP_200_OK)
+
+    @checkAuthToken
+    def patch(self, request: Request, order_id: str) -> Response:
+        order = self.getObject(order_id)
+        serializer = OrderSerializer(order, data=request.data, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            response_data = makeResponseData(
+                status=200,
+                message='OK',
+                details={'order': serializer.data}
+            )
+            return Response(response_data, status=status.HTTP_200_OK)
+
+    @checkAuthToken
+    def delete(self, request: Request, order_id: str) -> Response:
+        order = self.getObject(order_id)
+        order.delete()
         response_data = makeResponseData(status=204, message='No Content')
         return Response(response_data, status=status.HTTP_204_NO_CONTENT)

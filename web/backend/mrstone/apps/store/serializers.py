@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.store.models import Category, Product, ProductImage
+from apps.store.models import Category, Product, ProductImage, Order
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,3 +22,10 @@ class ProductImage(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id', 'product', 'image']
         read_only_fields = ['id', 'slug']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id', 'products', 'contact', 'contact_type', 'status', 'updated_at', 'created_at']
+        read_only_fields = ['id']

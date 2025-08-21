@@ -7,8 +7,8 @@ from django.utils.text import slugify
 
 from apps.auth.models import User, AuthToken
 from apps.auth.utils import hashAuthToken
-from apps.store.models import Category, Product
-from apps.store.serializers import CategorySerializer, ProductSerializer
+from apps.store.models import Category, Product, Order
+from apps.store.serializers import CategorySerializer, ProductSerializer, OrderSerializer
 
 import uuid
 from io import BytesIO
@@ -221,6 +221,115 @@ class ProductTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Delete product
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        # Request with incorrect auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header) 
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)     
+
+        # Try to get deleted product
+        response = self.client.get(url, format='json')     
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class OrderTests(APITestCase):
+    def testOrderCreation(self):
+        category = Category.objects.create(title='Home')
+
+        products_to_create = []
+        for i in range(5):
+            products_to_create.append(
+                Product(slug=f'test-{i}', title=f"Test product {i}", category=category, price=1000*i)
+            )
+        products = Product.objects.bulk_create(products_to_create)
+
+        url = reverse('order_list')
+
+        data = {
+            'products': [product.id for product in products],
+            'contact': '+7 999 888 77 66',
+            'contact_type': 'phone_number'
+        }
+
+        response = self.client.post(url, data, format='multipart') 
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+    def testOrderEditing(self):
+        category = Category.objects.create(title='Home')
+
+        products_to_create = []
+        for i in range(5):
+            products_to_create.append(
+                Product(slug=f'test-{i}', title=f"Test product {i}", category=category, price=1000*i)
+            )
+        products = Product.objects.bulk_create(products_to_create)
+
+        data = {
+            'products': [product.id for product in products],
+            'contact': '+7 999 888 77 66',
+            'contact_type': 'phone_number'
+        }
+        serializer = OrderSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+
+        url = reverse('order_detail', kwargs={'order_id': serializer.data['id']})
+
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        data = {
+            'products': [product.id for product in products[:3]],
+            'contact': '@NotSilaev',
+            'contact_type': 'Telegram'
+        }
+
+        # Request with incorrect auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header) 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+    def testOrderDeletion(self):
+        category = Category.objects.create(title='Home')
+
+        products_to_create = []
+        for i in range(5):
+            products_to_create.append(
+                Product(slug=f'test-{i}', title=f"Test product {i}", category=category, price=1000*i)
+            )
+        products = Product.objects.bulk_create(products_to_create)
+
+        data = {
+            'products': [product.id for product in products],
+            'contact': '+7 999 888 77 66',
+            'contact_type': 'phone_number'
+        }
+        serializer = OrderSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+
+        url = reverse('order_detail', kwargs={'order_id': serializer.data['id']})
+
         plain_auth_token = str(uuid.uuid4())
         auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
         user = User.objects.create(name='test_user')
