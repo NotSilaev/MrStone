@@ -5,6 +5,8 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.text import slugify
 
+from apps.auth.models import User, AuthToken
+from apps.auth.utils import hashAuthToken
 from apps.store.models import Category, Product
 from apps.store.serializers import CategorySerializer, ProductSerializer
 
@@ -24,12 +26,22 @@ def getTestImage():
 class CategoryTests(APITestCase):
     def testCategoryCreation(self):
         url = reverse('category_list')
+
         data = {
             'title': 'Home decorations',
             'description': 'Everything for home and yard',
             'image': getTestImage(),
         }
-        response = self.client.post(url, data, format='multipart')
+
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        response = self.client.post(url, data, format='multipart', HTTP_AUTHORIZATION=auth_header) 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
@@ -51,13 +63,27 @@ class CategoryTests(APITestCase):
             'title': 'Accessories for garden', 
             'description': 'Everything for garden'
         }
-        response = self.client.patch(url, data, format='json')     
+
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        # Request with incorrect auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header) 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Get edited category
         category_slug = slugify(data.get('title'), allow_unicode=True)
         url = reverse('category_detail', kwargs={'category_slug': category_slug})
-        response = self.client.get(url, format='json')     
+        response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
@@ -75,8 +101,21 @@ class CategoryTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Delete category
-        response = self.client.delete(url, format='json')     
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)     
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        # Request with incorrect auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header) 
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)   
 
         # Try to get deleted category
         response = self.client.get(url, format='json')     
@@ -97,7 +136,16 @@ class ProductTests(APITestCase):
             'available_quantity': 10,
             'images': (getTestImage() for i in range(0, 3))
         }
-        response = self.client.post(url, data, format='multipart')
+
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        response = self.client.post(url, data, format='multipart', HTTP_AUTHORIZATION=auth_header) 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
@@ -128,8 +176,22 @@ class ProductTests(APITestCase):
             'price': 10_000,
             'available_quantity': 20,
         }
-        response = self.client.patch(url, data, format='json')     
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        # Request with incorrect auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.patch(url, data, format='json', HTTP_AUTHORIZATION=auth_header) 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  
 
         # Get edited product
         product_slug = slugify(data.get('title'), allow_unicode=True)
@@ -159,7 +221,20 @@ class ProductTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Delete product
-        response = self.client.delete(url, format='json')     
+        plain_auth_token = str(uuid.uuid4())
+        auth_token_hash, auth_token_salt_hex = hashAuthToken(plain_auth_token)
+        user = User.objects.create(name='test_user')
+        AuthToken.objects.create(
+            user=user, token_hash=auth_token_hash, salt_hex=auth_token_salt_hex
+        )
+        auth_header = f'Bearer {plain_auth_token}'
+
+        # Request with incorrect auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header + 'extra_chars') 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)          
+        
+        # Request with correct auth token
+        response = self.client.delete(url, format='json', HTTP_AUTHORIZATION=auth_header) 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)     
 
         # Try to get deleted product

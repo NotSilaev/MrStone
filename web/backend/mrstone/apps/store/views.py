@@ -11,6 +11,7 @@ from django.db import transaction
 
 from utils import makeResponseData
 
+from apps.auth.access import checkAuthToken
 from apps.store.models import Category, Product, ProductImage
 from apps.store.serializers import CategorySerializer, ProductSerializer
 from apps.store.schemas import ProductListOffsetScheme
@@ -30,6 +31,7 @@ class CategoryList(APIView):
         )
         return Response(response_data, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def post(self, request: Request) -> Response:
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -59,6 +61,7 @@ class CategoryDetail(APIView):
         )
         return Response(response_data, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def patch(self, request: Request, category_slug: str) -> Response:
         category = self.getObject(category_slug)
         serializer = CategorySerializer(category, data=request.data, partial=True)
@@ -71,6 +74,7 @@ class CategoryDetail(APIView):
             )
             return Response(response_data, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def delete(self, request: Request, category_slug: str) -> Response:
         category = self.getObject(category_slug)
         category.delete()
@@ -108,6 +112,7 @@ class ProductList(APIView):
         )
         return Response(response_data, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def post(self, request: Request) -> Response:
         data = request.data
 
@@ -144,6 +149,7 @@ class ProductDetail(APIView):
         response = {'proudct': serialized_product}
         return Response(response, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def patch(self, request: Request, product_slug: str) -> Response:
         product = self.getObject(product_slug)
         serializer = ProductSerializer(product, data=request.data, partial=True)
@@ -156,6 +162,7 @@ class ProductDetail(APIView):
             )
             return Response(response_data, status=status.HTTP_200_OK)
 
+    @checkAuthToken
     def delete(self, request: Request, product_slug: str) -> Response:
         product = self.getObject(product_slug)
         product.delete()

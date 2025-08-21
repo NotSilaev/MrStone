@@ -16,6 +16,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     # Internal apps
+    'apps.auth.apps.AuthConfig',
     'apps.store.apps.StoreConfig',
 
     # Django apps
