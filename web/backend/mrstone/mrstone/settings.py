@@ -15,9 +15,16 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
+    # Internal apps
+    'apps.store.apps.StoreConfig',
+
+    # Django apps
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.staticfiles',
+
+    # External apps
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -30,9 +37,17 @@ MIDDLEWARE = [
 
     # Internal middleware
     'mrstone.middleware.ExceptionMiddleware',
+    'mrstone.middleware.RateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'mrstone.urls'
+
+REST_FRAMEWORK = { 
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [],
+    'UNAUTHENTICATED_USER': None,
+    'EXCEPTION_HANDLER': 'mrstone.exceptions.validationExceptionsHandler',
+}
 
 TEMPLATES = [
     {
@@ -64,6 +79,7 @@ DATABASES = {
         'NAME': project_settings.DB_NAME,
         'USER': project_settings.DB_USER,
         'PASSWORD': project_settings.DB_PASSWORD,
+        'ATOMIC_REQUESTS': True,
     },
 }
 
@@ -80,6 +96,10 @@ if DEBUG is False:
     STATIC_ROOT = 'static'
 else:
     STATICFILES_DIRS.append(os.path.join(BASE_DIR, 'static'))
+
+# Media files
+MEDIA_URL = 'media/'
+MEDIA_ROOT = 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
