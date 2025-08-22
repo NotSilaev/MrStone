@@ -147,8 +147,12 @@ class ProductDetail(APIView):
     def get(self, request: Request, product_slug: str) -> Response:
         product = self.getObject(product_slug)
         serialized_product = ProductSerializer(product).data
-        response = {'proudct': serialized_product}
-        return Response(response, status=status.HTTP_200_OK)
+        response_data = makeResponseData(
+            status=200,
+            message='OK',
+            details={'product': serialized_product}
+        )
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @checkAuthToken
     def patch(self, request: Request, product_slug: str) -> Response:
@@ -212,8 +216,12 @@ class OrderDetail(APIView):
     def get(self, request: Request, order_id: str) -> Response:
         order = self.getObject(order_id)
         serialized_order = OrderSerializer(order).data
-        response = {'order': serialized_order}
-        return Response(response, status=status.HTTP_200_OK)
+        response_data = makeResponseData(
+            status=200,
+            message='OK',
+            details={'order': serialized_order}
+        )
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @checkAuthToken
     def patch(self, request: Request, order_id: str) -> Response:
