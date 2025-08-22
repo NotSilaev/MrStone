@@ -1,4 +1,5 @@
-from django.http.request import HttpRequest
+from django.http.request import HttpRequest, QueryDict
+from django.utils import timezone
 
 from typing import Any
 from datetime import datetime
@@ -12,6 +13,33 @@ def makeResponseData(status: int, message: str = None, details: Any = None) -> d
         'details': details
     }
     return response_data
+
+
+def makeModelFilterKwargs(filters: tuple, query_params: QueryDict) -> dict:
+    "Compiles a dictionary of kwargs for their application in the model filter."
+
+    filter_kwargs = {}
+
+    for field in filters:
+        value = query_params.get(field)
+        if value:
+            if field.endswith('_at') and ':' in value:
+                date_from_str, date_to_str = value.split(':')
+
+                try:
+                    date_from = timezone.make_aware(datetime.strptime(date_from_str, '%Y-%m-%d'))
+                    date_to = timezone.make_aware(datetime.strptime(date_to_str, '%Y-%m-%d'))
+                except ValueError:
+                    continue
+
+                date_from = date_from.replace(hour=0, minute=0, second=0)
+                date_to = date_to.replace(hour=23, minute=59, second=59)
+
+                filter_kwargs[f"{field}__range"] = [date_from, date_to]
+            else:
+                filter_kwargs[field] = value
+
+    return filter_kwargs
 
 
 def getCurrentDateTime(timezone_code: str = 'UTC', exclude_timezone: bool = False) -> datetime:

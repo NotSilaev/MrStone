@@ -9,7 +9,7 @@ from django.db.utils import IntegrityError
 from django.utils.text import slugify
 from django.db import transaction
 
-from utils import makeResponseData
+from utils import makeResponseData, makeModelFilterKwargs
 
 from apps.auth.access import checkAuthToken
 from apps.store.models import Category, Product, ProductImage, Order
@@ -174,6 +174,13 @@ class ProductDetail(APIView):
 class OrderList(APIView):
     def get(self, request: Request) -> Response:
         orders = Order.objects.all()
+
+        filters = ('contact', 'contact_type')
+        query_params = request.query_params
+        filter_kwargs = makeModelFilterKwargs(filters, query_params)
+        if filter_kwargs:
+            orders = orders.filter(**filter_kwargs)
+
         serialized_orders = OrderSerializer(orders, many=True).data
         response_data = makeResponseData(
             status=200,
