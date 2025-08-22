@@ -22,7 +22,7 @@ def sendRequest(bot_token: str, request_method: str, api_method: str, parameters
 
     response = {
         'code': r.status_code,
-        'message': r.text,
+        'text': r.text,
     }
     
     return response

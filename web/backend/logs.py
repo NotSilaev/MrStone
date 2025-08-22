@@ -78,6 +78,6 @@ def addLog(level: str, message: str, details: str = None, send_telegram_message:
                     level='error', 
                     message=(
                         "Telegram message with last error log didn't send.\n",
-                        f"API response: {response['message']}"
+                        f"API response: {response['text']}"
                     )
                 )
