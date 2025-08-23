@@ -23,6 +23,18 @@ def getCurrentDateTime(timezone_code: str = 'UTC') -> datetime:
     return current_datetime
 
 
+def datetimeToString(dt: datetime, readable: bool = True) -> str:
+    dt_string = datetime.strftime(dt, '%Y-%m-%d %H:%M:%S.%fT%z')
+
+    if readable:
+        dt_string = ''.join(dt_string.split('T')[:-1])
+        dt = datetime.fromisoformat(dt_string)
+        cleaned_dt = dt.replace(microsecond=0, second=0, tzinfo=None)
+        dt_string = cleaned_dt.strftime("%Y-%m-%d %H:%M")
+
+    return dt_string
+
+
 def makeGreetingMessage(timezone_code: str = 'UTC') -> str:
     "Generates a welcome message based on the current time of day."
 
